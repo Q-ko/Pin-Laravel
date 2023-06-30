@@ -30,3 +30,7 @@ Route::delete('borrar-cliente/{id}', [ClienteController::class, 'destroy']);
 Route::put('activar-cliente', [ClienteController::class, 'activarCliente']);
 
 Route::get('ver-comentarios', [ComentarioController::class, 'index']);
+
+Route::get('mail-existe/{email}', [ClienteController::class, 'existMail']);
+
+Route::get('rellenar-formulario/{email}', [ClienteController::class, 'getFillForm']);
