@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendEmailJob;
 use App\Mail\SendPost;
 use App\Mail\SendPostNewComment;
 use App\Models\Cliente;
@@ -43,25 +44,60 @@ class ClienteController extends Controller
     {
         //
     }
+    public function getDataClient($request)
+    {
+        return Cliente::where('email', $request->email)->first();
+    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function existMail(Request $request)
+    {
+        $clienteExist = Cliente::where('email', $request->email)->exists();
+
+        if ($clienteExist) {
+            return response()->json([
+                'mensaje' => 'Existe',
+                'email' => $request->email,
+            ]);
+        } else {
+            return response()->json([
+                'mensaje' => 'No existe un cliente con este mail',
+                'email' => $request->email,
+            ]);
+        }
+
+
+    }
+
+    public function sendMail($mailClass, $details)
+    {
+        SendEmailJob::dispatch($mailClass, $details);
+    }
+
+    public function getFillForm(Request $request)
+    {
+        $cliente = $this->getDataClient($request);
+
+
+        return response()->json([
+            'mensaje' => 'Datos para rellenar el fromulario',
+            'nombre' => $cliente->nombre,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
             'email' => ['required', 'email'],
-            'nombre' => ['required', 'string'],
-            'telefono' => ['required', 'numeric'],
+
             'comentario' => ['required', 'string']
         ]);
 
-        $cliente = Cliente::where('email', $request->email)->first();
+        $cliente = $this->getDataClient($request); /* Cliente::where('email', $request->email)->first(); */
 
         if ($cliente) {
             $comentario = Comentario::create([
-                'cliente_id' => $cliente['id'],
-                'comentario' => $request['comentario'],
+                'cliente_id' => $cliente->id,
+                'comentario' => $request->comentario,
             ]);
 
             $details = [
@@ -71,7 +107,9 @@ class ClienteController extends Controller
                 'comentario' => $comentario['comentario'],
             ];
 
-            Mail::to('mundose.comentario.pin@gmail.com')->send(new SendPostNewComment($details));
+            $mailClass = SendPostNewComment::class;
+
+            $this->sendMail($mailClass, $details);
 
             return response()->json([
                 'mensaje' => 'El cliente agrego un nuevo comentario',
@@ -80,6 +118,12 @@ class ClienteController extends Controller
             ]);
 
         } else {
+            $request->validate([
+                'email' => ['required', 'email'],
+                'nombre' => ['required', 'string'],
+                'telefono' => ['required', 'numeric'],
+                'comentario' => ['required', 'string']
+            ]);
 
             $cliente = Cliente::create([
                 'email' => $request['email'],
@@ -100,7 +144,8 @@ class ClienteController extends Controller
                 'comentario' => $comentario['comentario'],
             ];
 
-            Mail::to('mundose.cliente.pin@gmail.com')->send(new SendPostNewClient($details));
+            $mailClass = SendPostNewClient::class;
+            $this->sendMail($mailClass, $details);
 
 
             return response()->json([
