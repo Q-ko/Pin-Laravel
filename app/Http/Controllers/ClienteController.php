@@ -56,6 +56,7 @@ class ClienteController extends Controller
         if ($clienteExist) {
             return response()->json([
                 'mensaje' => 'Existe',
+                'existe' => true,
                 'email' => $request->email,
             ]);
         } else {
@@ -80,6 +81,7 @@ class ClienteController extends Controller
 
         return response()->json([
             'mensaje' => 'Datos para rellenar el fromulario',
+
             'nombre' => $cliente->nombre,
         ]);
     }
